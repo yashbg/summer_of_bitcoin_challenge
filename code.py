@@ -42,7 +42,7 @@ def create_children_dict(mempool):
         children_dict[tx.txid] = []
     for tx in mempool:
         for parent in tx.parents:
-            children_dict[parent].append(tx.txid)
+            children_dict[parent].append(tx)
     return children_dict
 
 def analyse_children_dict(children_dict):
@@ -72,7 +72,7 @@ def check_tx(block, tx, curr_weight):
             return False
     return True
 
-def create_block(sorted_mempool):
+def create_block(sorted_mempool, children_dict):
     """Create and return a block from the mempool maximizing the fee to the miner and print its stats."""
     block = []
     curr_weight = 0
@@ -82,8 +82,16 @@ def create_block(sorted_mempool):
             curr_weight += tx.weight
             curr_fee += tx.fee
             block.append(tx.txid)
-    save_block_stats(block, curr_fee, curr_weight)
 
+            for child in children_dict[tx.txid]:
+                if child.txid not in block:
+                    if child.fee / child.weight >= tx.fee / tx.weight:
+                        if curr_weight + child.weight <= MAX_WEIGHT:
+                            curr_weight += child.weight
+                            curr_fee += child.fee
+                            block.append(child.txid)
+
+    save_block_stats(block, curr_fee, curr_weight)
     print(f"Total fee: {curr_fee} satoshis")
     print(f"Total weight: {curr_weight}")
     print(f"Size of block: {len(block)} transactions")
@@ -107,6 +115,6 @@ print()
 
 sorted_mempool = sorted(mempool, key=lambda tx: tx.fee / tx.weight, reverse=True)
 
-block, total_fee, total_weight = create_block(sorted_mempool)
+block, total_fee, total_weight = create_block(sorted_mempool, children_dict)
 
 save_block_txids(block)
