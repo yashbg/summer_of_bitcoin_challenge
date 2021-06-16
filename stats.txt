@@ -1,0 +1,3 @@
+Total fee: 5817973 satoshis
+Total weight: 3999784
+Size of block: 3217 transactions
