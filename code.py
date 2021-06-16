@@ -49,9 +49,13 @@ def create_block(mempool):
     for tx in mempool:
         if curr_weight + tx.weight > MAX_WEIGHT:
             continue
-        curr_weight += tx.weight
-        curr_fee += tx.fee
-        block.append(tx.txid)
+        for parent in tx.parents:
+            if parent not in block:
+                break
+        else:
+            curr_weight += tx.weight
+            curr_fee += tx.fee
+            block.append(tx.txid)
     save_block_stats(block, curr_fee, curr_weight)
 
     print(f"Total fee: {curr_fee} satoshis")
