@@ -57,7 +57,7 @@ def create_block(mempool):
     print(f"Total fee: {curr_fee} satoshis")
     print(f"Total weight: {curr_weight}")
     print(f"Size of block: {len(block)} transactions")
-    return block
+    return block, curr_fee, curr_weight
 
 def save_block_txids(block):
     """Save the transaction identifiers of the block in block.txt"""
@@ -73,6 +73,6 @@ print()
 
 sorted_mempool = sorted(mempool, key=lambda tx: tx.fee / tx.weight, reverse=True)
 
-block = create_block(sorted_mempool)
+block, total_fee, total_weight = create_block(sorted_mempool)
 
 save_block_txids(block)
