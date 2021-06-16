@@ -48,7 +48,7 @@ def create_block(mempool):
     curr_fee = 0
     for tx in mempool:
         if curr_weight + tx.weight > MAX_WEIGHT:
-            break
+            continue
         curr_weight += tx.weight
         curr_fee += tx.fee
         block.append(tx.txid)
