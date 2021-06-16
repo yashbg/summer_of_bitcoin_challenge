@@ -41,18 +41,21 @@ def save_block_stats(block, total_fee, total_weight):
         file.write(f"Total weight: {total_weight}\n")
         file.write(f"Size of block: {len(block)} transactions\n")
 
-def create_block(mempool):
+def check_tx(block, tx, curr_weight):
+    if curr_weight + tx.weight > MAX_WEIGHT:
+        return False
+    for parent in tx.parents:
+        if parent not in block:
+            return False
+    return True
+
+def create_block(sorted_mempool):
     """Create and return a block from the mempool maximizing the fee to the miner and print its stats."""
     block = []
     curr_weight = 0
     curr_fee = 0
-    for tx in mempool:
-        if curr_weight + tx.weight > MAX_WEIGHT:
-            continue
-        for parent in tx.parents:
-            if parent not in block:
-                break
-        else:
+    for tx in sorted_mempool:
+        if check_tx(block, tx, curr_weight):
             curr_weight += tx.weight
             curr_fee += tx.fee
             block.append(tx.txid)
