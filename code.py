@@ -45,7 +45,7 @@ def create_children_dict(mempool):
             children_dict[parent].append(tx)
     return children_dict
 
-def analyse_children_dict(children_dict):
+def analyse_children_dict():
     """Analyse the children_dict and print its stats."""
     num_with_children = 0 # No. of transactions having atleast 1 child transaction
     max_num_children = 0 # Maximum no. of child transactions of any transaction
@@ -93,7 +93,7 @@ def check_tx(tx, curr_weight, is_added_dict):
         return False
     return True
 
-def add_tx(block, tx, curr_weight, curr_fee, is_added_dict, valid_dict, children_dict):
+def add_tx(block, tx, curr_weight, curr_fee):
     """Add a transaction to the block and update the total weight and total fee corresponding to the block."""
     curr_weight += tx.weight
     curr_fee += tx.fee
@@ -108,18 +108,18 @@ def add_tx(block, tx, curr_weight, curr_fee, is_added_dict, valid_dict, children
             valid_dict[child.txid] = True
     return curr_weight, curr_fee
 
-def create_block(sorted_mempool, children_dict, valid_dict, is_added_dict):
+def create_block(sorted_mempool):
     """Create and return a block from the mempool maximizing the fee to the miner and print its stats."""
     block = []
     curr_weight = 0
     curr_fee = 0
     for i, tx in enumerate(sorted_mempool):
         if check_tx(tx, curr_weight, is_added_dict):
-            curr_weight, curr_fee = add_tx(block, tx, curr_weight, curr_fee, is_added_dict, valid_dict, children_dict)
+            curr_weight, curr_fee = add_tx(block, tx, curr_weight, curr_fee)
 
             for tx2 in sorted_mempool[:i]:
                 if check_tx(tx2, curr_weight, is_added_dict):
-                    curr_weight, curr_fee = add_tx(block, tx2, curr_weight, curr_fee, is_added_dict, valid_dict, children_dict)
+                    curr_weight, curr_fee = add_tx(block, tx2, curr_weight, curr_fee)
 
     save_block_stats(block, curr_fee, curr_weight)
     print(f"Total fee: {curr_fee} satoshis")
@@ -127,7 +127,7 @@ def create_block(sorted_mempool, children_dict, valid_dict, is_added_dict):
     print(f"Size of block: {len(block)} transactions")
     return block, curr_fee, curr_weight
 
-def save_block_txids(block):
+def save_block_txids():
     """Save the transaction identifiers of the block in block.txt."""
     with open('block.txt', 'w') as file:
         for txid in block:
@@ -140,7 +140,7 @@ analyse_mempool(mempool)
 print()
 
 children_dict = create_children_dict(mempool)
-analyse_children_dict(children_dict)
+analyse_children_dict()
 print()
 
 valid_dict = create_valid_dict(mempool)
@@ -149,6 +149,6 @@ is_added_dict = create_is_added_dict(mempool)
 
 sorted_mempool = sorted(mempool, key=lambda tx: tx.fee / tx.weight, reverse=True)
 
-block, total_fee, total_weight = create_block(sorted_mempool, children_dict, valid_dict, is_added_dict)
+block, total_fee, total_weight = create_block(sorted_mempool)
 
-save_block_txids(block)
+save_block_txids()
