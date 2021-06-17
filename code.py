@@ -93,11 +93,19 @@ def check_tx(tx, curr_weight, is_added_dict):
         return False
     return True
 
-def add_tx(block, tx, curr_weight, curr_fee):
+def add_tx(block, tx, curr_weight, curr_fee, is_added_dict, valid_dict, children_dict):
     """Add a transaction to the block and update the total weight and total fee corresponding to the block."""
     curr_weight += tx.weight
     curr_fee += tx.fee
     block.append(tx.txid)
+    is_added_dict[tx.txid] = True
+
+    for child in children_dict[tx.txid]:
+        for parent in child.parents:
+            if not is_added_dict[parent]:
+                break
+        else:
+            valid_dict[child.txid] = True
     return curr_weight, curr_fee
 
 def create_block(sorted_mempool, children_dict, valid_dict, is_added_dict):
@@ -107,24 +115,11 @@ def create_block(sorted_mempool, children_dict, valid_dict, is_added_dict):
     curr_fee = 0
     for i, tx in enumerate(sorted_mempool):
         if check_tx(tx, curr_weight, is_added_dict):
-            curr_weight, curr_fee = add_tx(block, tx, curr_weight, curr_fee)
-            is_added_dict[tx.txid] = True
-            for child in children_dict[tx.txid]:
-                for parent in child.parents:
-                    if not is_added_dict[parent]:
-                        break
-                else:
-                    valid_dict[child.txid] = True
+            curr_weight, curr_fee = add_tx(block, tx, curr_weight, curr_fee, is_added_dict, valid_dict, children_dict)
+
             for tx2 in sorted_mempool[:i]:
                 if check_tx(tx2, curr_weight, is_added_dict):
-                    curr_weight, curr_fee = add_tx(block, tx2, curr_weight, curr_fee)
-                    is_added_dict[tx2.txid] = True
-                    for child in children_dict[tx2.txid]:
-                        for parent in child.parents:
-                            if not is_added_dict[parent]:
-                                break
-                        else:
-                            valid_dict[child.txid] = True
+                    curr_weight, curr_fee = add_tx(block, tx2, curr_weight, curr_fee, is_added_dict, valid_dict, children_dict)
 
     save_block_stats(block, curr_fee, curr_weight)
     print(f"Total fee: {curr_fee} satoshis")
