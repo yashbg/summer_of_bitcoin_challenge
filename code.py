@@ -1,6 +1,6 @@
 MAX_WEIGHT = 4000000
 
-class MempoolTransaction():
+class MempoolTransaction:
     def __init__(self, txid, fee, weight, parents):
         self.txid = txid
         self.fee = int(fee)
@@ -9,6 +9,12 @@ class MempoolTransaction():
             self.parents = []
         else:
             self.parents = [parent for parent in parents.strip().split(';')]
+
+class Block:
+    def __init__(self, txids, total_fee, total_weight):
+        self.txids = txids
+        self.fee = total_fee
+        self.weight = total_weight
 
 def parse_mempool_csv():
     """Parse the CSV file and return a list of MempoolTransactions."""
@@ -73,12 +79,12 @@ def create_is_added_dict(mempool):
         is_added_dict[tx.txid] = False
     return is_added_dict
 
-def save_block_stats(block, total_fee, total_weight):
+def save_block_stats(block):
     """Save the stats of the block in stats.txt."""
     with open('stats.txt', 'w') as file:
-        file.write(f"Total fee: {total_fee} satoshis\n")
-        file.write(f"Total weight: {total_weight}\n")
-        file.write(f"Size of block: {len(block)} transactions\n")
+        file.write(f"Total fee: {block.fee} satoshis\n")
+        file.write(f"Total weight: {block.weight}\n")
+        file.write(f"Size of block: {len(block.txids)} transactions\n")
 
 def check_tx(tx, curr_weight, is_added_dict):
     """Check if a transaction can be added to the block."""
@@ -86,11 +92,11 @@ def check_tx(tx, curr_weight, is_added_dict):
         return False
     return True
 
-def add_tx(block, tx, curr_weight, curr_fee):
+def add_tx(block, tx):
     """Add a transaction to the block and update the total weight and total fee corresponding to the block."""
-    curr_weight += tx.weight
-    curr_fee += tx.fee
-    block.append(tx.txid)
+    block.weight += tx.weight
+    block.fee += tx.fee
+    block.txids.append(tx.txid)
     is_added_dict[tx.txid] = True
 
     for child in children_dict[tx.txid]:
@@ -99,31 +105,28 @@ def add_tx(block, tx, curr_weight, curr_fee):
                 break
         else:
             valid_dict[child.txid] = True
-    return curr_weight, curr_fee
 
 def create_block(sorted_mempool):
     """Create and return a block from the mempool maximizing the fee to the miner and print its stats."""
-    block = []
-    curr_weight = 0
-    curr_fee = 0
+    block = Block(txids=[], total_fee=0, total_weight=0)
     for i, tx in enumerate(sorted_mempool):
-        if check_tx(tx, curr_weight, is_added_dict):
-            curr_weight, curr_fee = add_tx(block, tx, curr_weight, curr_fee)
+        if check_tx(tx, block.weight, is_added_dict):
+            add_tx(block, tx)
 
             for tx2 in sorted_mempool[:i]:
-                if check_tx(tx2, curr_weight, is_added_dict):
-                    curr_weight, curr_fee = add_tx(block, tx2, curr_weight, curr_fee)
-
-    save_block_stats(block, curr_fee, curr_weight)
-    print(f"Total fee: {curr_fee} satoshis")
-    print(f"Total weight: {curr_weight}")
-    print(f"Size of block: {len(block)} transactions")
-    return block, curr_fee, curr_weight
+                if check_tx(tx2, block.weight, is_added_dict):
+                    add_tx(block, tx2)
+    
+    save_block_stats(block)
+    print(f"Total fee: {block.fee} satoshis")
+    print(f"Total weight: {block.weight}")
+    print(f"Size of block: {len(block.txids)} transactions")
+    return block
 
 def save_block_txids():
     """Save the transaction identifiers of the block in block.txt."""
     with open('block.txt', 'w') as file:
-        for txid in block:
+        for txid in block.txids:
             file.write(txid)
             file.write('\n')
 
@@ -141,6 +144,6 @@ is_added_dict = create_is_added_dict(mempool)
 
 sorted_mempool = sorted(mempool, key=lambda tx: tx.fee / tx.weight, reverse=True)
 
-block, total_fee, total_weight = create_block(sorted_mempool)
+block = create_block(sorted_mempool)
 
 save_block_txids()
