@@ -3,10 +3,13 @@ import sys
 MAX_WEIGHT = 4000000
 
 class MempoolTransaction:
+    """A class for the transactions of the mempool."""
     def __init__(self, txid, fee, weight, parents):
-        self.txid = txid
-        self.fee = int(fee)
-        self.weight = int(weight)
+        self.txid = txid # the transaction identifier
+        self.fee = int(fee) # the transaction fee
+        self.weight = int(weight) # the transaction weight
+        
+        # a list of the txids of the transaction’s unconfirmed parent transactions
         if parents == '':
             self.parents = []
         else:
@@ -18,8 +21,6 @@ def parse_mempool_csv():
         next(file) # skipping the first line of mempool.csv
         return [MempoolTransaction(*line.strip().split(',')) for line in file.readlines()]
 
-mempool = parse_mempool_csv()
-
 def get_tx(mempool, txid):
     """Return the MempoolTransaction whose transaction identifier is txid."""
     for tx in mempool:
@@ -28,26 +29,29 @@ def get_tx(mempool, txid):
     print(f"txid {txid} not found")
     sys.exit()
 
-with open('block.txt') as file:
-    block = file.read().splitlines()
+if __name__ == '__main__':
+    mempool = parse_mempool_csv()
 
-total_fee = 0
-total_weight = 0
-for i, txid in enumerate(block):
-    tx = get_tx(mempool, txid)
-    total_fee += tx.fee
-    total_weight += tx.weight
-    if len(tx.parents) > 0:
-        for parent in tx.parents:
-            if parent not in block[:i]:
-                print(f"Parent {parent} of {tx.txid} is not in block")
-                sys.exit()
+    with open('block.txt') as file:
+        block = file.read().splitlines()
 
-if total_weight > MAX_WEIGHT:
-    print("Total weight exceeded")
-    sys.exit()
+    total_fee = 0
+    total_weight = 0
+    for i, txid in enumerate(block):
+        tx = get_tx(mempool, txid)
+        total_fee += tx.fee
+        total_weight += tx.weight
+        if len(tx.parents) > 0:
+            for parent in tx.parents:
+                if parent not in block[:i]:
+                    print(f"Parent {parent} of {tx.txid} is not in block")
+                    sys.exit()
 
-print('Correct')
-print(f"Total fee: {total_fee} satoshis")
-print(f"Total weight: {total_weight}")
-print(f"Size of block: {len(block)} transactions")
+    if total_weight > MAX_WEIGHT:
+        print("Total weight exceeded")
+        sys.exit()
+
+    print('Correct')
+    print(f"Total fee: {total_fee} satoshis")
+    print(f"Total weight: {total_weight}")
+    print(f"Size of block: {len(block)} transactions")

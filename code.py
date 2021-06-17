@@ -1,20 +1,24 @@
 MAX_WEIGHT = 4000000
 
 class MempoolTransaction:
+    """A class for the transactions of the mempool."""
     def __init__(self, txid, fee, weight, parents):
-        self.txid = txid
-        self.fee = int(fee)
-        self.weight = int(weight)
+        self.txid = txid # the transaction identifier
+        self.fee = int(fee) # the transaction fee
+        self.weight = int(weight) # the transaction weight
+        
+        # a list of the txids of the transaction’s unconfirmed parent transactions
         if parents == '':
             self.parents = []
         else:
             self.parents = [parent for parent in parents.strip().split(';')]
 
 class Block:
+    """A class for the block of transactions to be created by the miner."""
     def __init__(self, txids, fee, weight):
-        self.txids = txids
-        self.fee = fee
-        self.weight = weight
+        self.txids = txids # an ordered list of the txids of the transactions in the block
+        self.fee = fee # the total fee corresponding to the transactions in the block
+        self.weight = weight # the total weight of the transactions in the block
 
 def parse_mempool_csv():
     """Parse the CSV file and return a list of MempoolTransactions."""
@@ -24,11 +28,11 @@ def parse_mempool_csv():
 
 def analyse_mempool(mempool):
     """Analyse the mempool and print its stats."""
-    num_tx = len(mempool) # TOtal no. of transactions
+    num_tx = len(mempool) # total no. of transactions
     print('Total no. of transactions:', num_tx)
 
-    num_with_parents = 0 # No. of transactions having atleast 1 parent transaction
-    max_num_parents = 0 # Maximum no. of parent transactions of any transaction
+    num_with_parents = 0 # no. of transactions having atleast 1 parent transaction
+    max_num_parents = 0 # maximum no. of parent transactions of any transaction
     for tx in mempool:
         if len(tx.parents) > 0:
             num_with_parents += 1
@@ -49,8 +53,8 @@ def create_children_dict(mempool):
 
 def analyse_children_dict():
     """Analyse the children_dict and print its stats."""
-    num_with_children = 0 # No. of transactions having atleast 1 child transaction
-    max_num_children = 0 # Maximum no. of child transactions of any transaction
+    num_with_children = 0 # no. of transactions having atleast 1 child transaction
+    max_num_children = 0 # maximum no. of child transactions of any transaction
     for children in children_dict.values():
         if len(children) > 0:
             num_with_children += 1
@@ -62,17 +66,17 @@ def create_valid_dict(mempool):
     """Create and return a dictionary which contains True if all of the parents of the transaction have been added to the block."""
     valid_dict = {}
     for tx in mempool:
-        if len(tx.parents) == 0:
+        if len(tx.parents) == 0: # no parent
             valid_dict[tx.txid] = True
         else:
-            valid_dict[tx.txid] = False
+            valid_dict[tx.txid] = False # block is empty initially
     return valid_dict
 
 def create_is_added_dict(mempool):
     """Create and return a dictionary which contains True if the transaction has been added to the block."""
     is_added_dict = {}
     for tx in mempool:
-        is_added_dict[tx.txid] = False
+        is_added_dict[tx.txid] = False # block is empty initially
     return is_added_dict
 
 def save_block_stats(block):
@@ -84,6 +88,7 @@ def save_block_stats(block):
 
 def check_tx(tx, curr_weight):
     """Check if a transaction can be added to the block."""
+    # cannot be added if the weight limit exceeds or if it is already added or if all of its parents have not been added yet
     if curr_weight + tx.weight > MAX_WEIGHT or is_added_dict[tx.txid] or not valid_dict[tx.txid]:
         return False
     return True
@@ -91,6 +96,7 @@ def check_tx(tx, curr_weight):
 def update_children_validity(tx):
     """Update valid_dict for children of tx."""
     for child in children_dict[tx.txid]:
+        # child has become valid only if all of its parents have already been added to the block
         for parent in child.parents:
             if not is_added_dict[parent]:
                 break
@@ -104,18 +110,20 @@ def add_tx(block, tx):
     block.txids.append(tx.txid)
 
     is_added_dict[tx.txid] = True
-    update_children_validity(tx)
+    update_children_validity(tx) # check if the children of tx have become valid now
 
 def create_block(sorted_mempool):
-    """Create and return a block from the mempool maximizing the fee to the miner and print its stats."""
+    """Create and return a block from the mempool maximizing the fee to the miner and print its stats and save them."""
     block = Block(txids=[], fee=0, weight=0)
+    # add transactions having higher fee:weight ratio first
     for i, tx in enumerate(sorted_mempool):
         if check_tx(tx, block.weight):
             add_tx(block, tx)
 
-            for tx2 in sorted_mempool[:i]:
-                if check_tx(tx2, block.weight):
-                    add_tx(block, tx2)
+            # check if any of the previous transactions which could not be added can be added now
+            for tx_prev in sorted_mempool[:i]:
+                if check_tx(tx_prev, block.weight):
+                    add_tx(block, tx_prev)
     
     save_block_stats(block)
     print(f"Total fee: {block.fee} satoshis")
@@ -142,6 +150,7 @@ print()
 valid_dict = create_valid_dict(mempool)
 is_added_dict = create_is_added_dict(mempool)
 
+# sort the transactions of the mempool in decreasing order of fee:weight ratio
 sorted_mempool = sorted(mempool, key=lambda tx: tx.fee / tx.weight, reverse=True)
 
 block = create_block(sorted_mempool)
