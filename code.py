@@ -72,6 +72,12 @@ def check_tx(block, tx, curr_weight):
             return False
     return True
 
+def add_tx(block, tx, curr_weight, curr_fee):
+    curr_weight += tx.weight
+    curr_fee += tx.fee
+    block.append(tx.txid)
+    return curr_weight, curr_fee
+
 def create_block(sorted_mempool, children_dict):
     """Create and return a block from the mempool maximizing the fee to the miner and print its stats."""
     block = []
@@ -79,18 +85,14 @@ def create_block(sorted_mempool, children_dict):
     curr_fee = 0
     for i, tx in enumerate(sorted_mempool):
         if check_tx(block, tx, curr_weight):
-            curr_weight += tx.weight
-            curr_fee += tx.fee
-            block.append(tx.txid)
+            curr_weight, curr_fee = add_tx(block, tx, curr_weight, curr_fee)
 
             for child in children_dict[tx.txid]:
                 if i + 1 < len(sorted_mempool):
                     if child.fee / child.weight >= sorted_mempool[i + 1].fee / sorted_mempool[i + 1].weight:
                         if child.txid not in block:
                             if curr_weight + child.weight <= MAX_WEIGHT:
-                                curr_weight += child.weight
-                                curr_fee += child.fee
-                                block.append(child.txid)
+                                curr_weight, curr_fee = add_tx(block, child, curr_weight, curr_fee)
 
     save_block_stats(block, curr_fee, curr_weight)
     print(f"Total fee: {curr_fee} satoshis")
