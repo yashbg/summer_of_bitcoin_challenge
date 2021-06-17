@@ -56,6 +56,14 @@ def analyse_children_dict(children_dict):
     print("No. of transactions having atleast 1 child transaction:", num_with_children)
     print("Maximum no. of child transactions of any transaction:", max_num_children)
 
+def create_valid_dict(mempool):
+    valid_dict = {}
+    for tx in mempool:
+        if len(tx.parents == 0):
+            valid_dict[tx.txid] = True
+        else:
+            valid_dict[tx.txid] = False
+
 def save_block_stats(block, total_fee, total_weight):
     """Save the stats of the block in stats.txt."""
     with open('stats.txt', 'w') as file:
@@ -115,6 +123,8 @@ print()
 children_dict = create_children_dict(mempool)
 analyse_children_dict(children_dict)
 print()
+
+valid_dict = create_valid_dict(mempool)
 
 sorted_mempool = sorted(mempool, key=lambda tx: tx.fee / tx.weight, reverse=True)
 
