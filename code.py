@@ -63,6 +63,7 @@ def create_valid_dict(mempool):
             valid_dict[tx.txid] = True
         else:
             valid_dict[tx.txid] = False
+    return valid_dict
 
 def save_block_stats(block, total_fee, total_weight):
     """Save the stats of the block in stats.txt."""
@@ -88,18 +89,23 @@ def add_tx(block, tx, curr_weight, curr_fee):
 
 def create_block(sorted_mempool, children_dict, valid_dict):
     """Create and return a block from the mempool maximizing the fee to the miner and print its stats."""
+    is_added = [False] * len(sorted_mempool)
     block = []
     curr_weight = 0
     curr_fee = 0
     for i, tx in enumerate(sorted_mempool):
         if check_tx(block, tx, curr_weight):
             curr_weight, curr_fee = add_tx(block, tx, curr_weight, curr_fee)
-
+            is_added[i] = True
             for child in children_dict[tx.txid]:
-                if (i + 1 < len(sorted_mempool) and child.fee / child.weight >= sorted_mempool[i + 1].fee / sorted_mempool[i + 1].weight) or i + 1 == len(sorted_mempool):
-                    if child.txid not in block:
-                        if curr_weight + child.weight <= MAX_WEIGHT:
-                            curr_weight, curr_fee = add_tx(block, child, curr_weight, curr_fee)
+                valid_dict[child.txid] = True
+            for j, tx2 in enumerate(sorted_mempool[:i]):
+                if not is_added[j] and valid_dict[tx2.txid]:
+                    if check_tx(block, tx2, curr_weight):
+                        curr_weight, curr_fee = add_tx(block, tx2, curr_weight, curr_fee)
+                        is_added[j] = True
+                        for child2 in children_dict[tx2.txid]:
+                            valid_dict[child2.txid] = True
 
     save_block_stats(block, curr_fee, curr_weight)
     print(f"Total fee: {curr_fee} satoshis")
