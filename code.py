@@ -20,7 +20,7 @@ def parse_mempool_csv():
     """Parse the CSV file and return a list of MempoolTransactions."""
     with open('mempool.csv') as file:
         next(file) # skipping the first line of mempool.csv
-        return([MempoolTransaction(*line.strip().split(',')) for line in file.readlines()])
+        return [MempoolTransaction(*line.strip().split(',')) for line in file.readlines()]
 
 def analyse_mempool(mempool):
     """Analyse the mempool and print its stats."""
@@ -36,16 +36,12 @@ def analyse_mempool(mempool):
     print("No. of transactions having atleast 1 parent transaction:", num_with_parents)
     print("Maximum no. of parent transactions of any transaction:", max_num_parents)
 
-def print_mempool(mempool):
-    """Print the mempool."""
-    for tx in mempool:
-        print(tx.txid, tx.fee, tx.weight, tx.parents)
-
 def create_children_dict(mempool):
     """Create and return a dictionary which contains the list of children of the transaction for every transaction in the mempool."""
     children_dict = {}
     for tx in mempool:
         children_dict[tx.txid] = []
+    
     for tx in mempool:
         for parent in tx.parents:
             children_dict[parent].append(tx)
@@ -92,19 +88,23 @@ def check_tx(tx, curr_weight, is_added_dict):
         return False
     return True
 
-def add_tx(block, tx):
-    """Add a transaction to the block and update the total weight and total fee corresponding to the block."""
-    block.weight += tx.weight
-    block.fee += tx.fee
-    block.txids.append(tx.txid)
-    is_added_dict[tx.txid] = True
-
+def update_children_validity(tx):
+    """Update valid_dict for children of tx."""
     for child in children_dict[tx.txid]:
         for parent in child.parents:
             if not is_added_dict[parent]:
                 break
         else:
             valid_dict[child.txid] = True
+
+def add_tx(block, tx):
+    """Add a transaction to the block and update the total weight and total fee corresponding to the block."""
+    block.weight += tx.weight
+    block.fee += tx.fee
+    block.txids.append(tx.txid)
+    
+    is_added_dict[tx.txid] = True
+    update_children_validity(tx)
 
 def create_block(sorted_mempool):
     """Create and return a block from the mempool maximizing the fee to the miner and print its stats."""

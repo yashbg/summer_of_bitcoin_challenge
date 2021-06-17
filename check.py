@@ -2,7 +2,7 @@ import sys
 
 MAX_WEIGHT = 4000000
 
-class MempoolTransaction():
+class MempoolTransaction:
     def __init__(self, txid, fee, weight, parents):
         self.txid = txid
         self.fee = int(fee)
@@ -16,11 +16,12 @@ def parse_mempool_csv():
     """Parse the CSV file and return a list of MempoolTransactions."""
     with open('mempool.csv') as file:
         next(file) # skipping the first line of mempool.csv
-        return([MempoolTransaction(*line.strip().split(',')) for line in file.readlines()])
+        return [MempoolTransaction(*line.strip().split(',')) for line in file.readlines()]
 
 mempool = parse_mempool_csv()
 
 def get_tx(mempool, txid):
+    """Return the MempoolTransaction whose transaction identifier is txid."""
     for tx in mempool:
         if str(tx.txid) == str(txid):
             return tx
