@@ -59,7 +59,7 @@ def analyse_children_dict(children_dict):
 def create_valid_dict(mempool):
     valid_dict = {}
     for tx in mempool:
-        if len(tx.parents == 0):
+        if len(tx.parents) == 0:
             valid_dict[tx.txid] = True
         else:
             valid_dict[tx.txid] = False
@@ -86,7 +86,7 @@ def add_tx(block, tx, curr_weight, curr_fee):
     block.append(tx.txid)
     return curr_weight, curr_fee
 
-def create_block(sorted_mempool, children_dict):
+def create_block(sorted_mempool, children_dict, valid_dict):
     """Create and return a block from the mempool maximizing the fee to the miner and print its stats."""
     block = []
     curr_weight = 0
@@ -96,11 +96,10 @@ def create_block(sorted_mempool, children_dict):
             curr_weight, curr_fee = add_tx(block, tx, curr_weight, curr_fee)
 
             for child in children_dict[tx.txid]:
-                if i + 1 < len(sorted_mempool):
-                    if child.fee / child.weight >= sorted_mempool[i + 1].fee / sorted_mempool[i + 1].weight:
-                        if child.txid not in block:
-                            if curr_weight + child.weight <= MAX_WEIGHT:
-                                curr_weight, curr_fee = add_tx(block, child, curr_weight, curr_fee)
+                if (i + 1 < len(sorted_mempool) and child.fee / child.weight >= sorted_mempool[i + 1].fee / sorted_mempool[i + 1].weight) or i + 1 == len(sorted_mempool):
+                    if child.txid not in block:
+                        if curr_weight + child.weight <= MAX_WEIGHT:
+                            curr_weight, curr_fee = add_tx(block, child, curr_weight, curr_fee)
 
     save_block_stats(block, curr_fee, curr_weight)
     print(f"Total fee: {curr_fee} satoshis")
@@ -128,6 +127,6 @@ valid_dict = create_valid_dict(mempool)
 
 sorted_mempool = sorted(mempool, key=lambda tx: tx.fee / tx.weight, reverse=True)
 
-block, total_fee, total_weight = create_block(sorted_mempool, children_dict)
+block, total_fee, total_weight = create_block(sorted_mempool, children_dict, valid_dict)
 
 save_block_txids(block)
