@@ -66,13 +66,6 @@ def create_valid_dict(mempool):
             valid_dict[tx.txid] = False
     return valid_dict
 
-# def create_tx_dict(mempool):
-#     """Create and return a dictionary which maps txids to MempoolTransaction objects."""
-#     tx_dict = {}
-#     for tx in mempool:
-#         tx_dict[tx.txid] = tx
-#     return tx_dict
-
 def create_is_added_dict(mempool):
     """Create and return a dictionary which contains True if the transaction has been added to the block."""
     is_added_dict = {}
@@ -144,7 +137,6 @@ analyse_children_dict()
 print()
 
 valid_dict = create_valid_dict(mempool)
-# tx_dict = create_tx_dict(mempool)
 is_added_dict = create_is_added_dict(mempool)
 
 sorted_mempool = sorted(mempool, key=lambda tx: tx.fee / tx.weight, reverse=True)
