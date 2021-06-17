@@ -73,6 +73,12 @@ def create_tx_dict(mempool):
         tx_dict[tx.txid] = tx
     return tx_dict
 
+def create_is_added_dict(mempool):
+    is_added_dict = {}
+    for tx in mempool:
+        is_added_dict[tx.txid] = False
+    return is_added_dict
+
 def save_block_stats(block, total_fee, total_weight):
     """Save the stats of the block in stats.txt."""
     with open('stats.txt', 'w') as file:
@@ -148,6 +154,7 @@ print()
 
 valid_dict = create_valid_dict(mempool)
 tx_dict = create_tx_dict(mempool)
+is_added_dict = create_is_added_dict(mempool)
 
 sorted_mempool = sorted(mempool, key=lambda tx: tx.fee / tx.weight, reverse=True)
 
