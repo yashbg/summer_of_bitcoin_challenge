@@ -89,11 +89,8 @@ def save_block_stats(block, total_fee, total_weight):
 
 def check_tx(tx, curr_weight, is_added_dict):
     """Check if a transaction can be added to the block."""
-    if curr_weight + tx.weight > MAX_WEIGHT:
+    if curr_weight + tx.weight > MAX_WEIGHT or is_added_dict[tx.txid] or not valid_dict[tx.txid]:
         return False
-    for parent in tx.parents:
-        if not is_added_dict[parent]:
-            return False
     return True
 
 def add_tx(block, tx, curr_weight, curr_fee):
@@ -119,16 +116,15 @@ def create_block(sorted_mempool, children_dict, valid_dict, is_added_dict):
                 else:
                     valid_dict[child.txid] = True
             for tx2 in sorted_mempool[:i]:
-                if not is_added_dict[tx2.txid] and valid_dict[tx2.txid]:
-                    if check_tx(tx2, curr_weight, is_added_dict):
-                        curr_weight, curr_fee = add_tx(block, tx2, curr_weight, curr_fee)
-                        is_added_dict[tx2.txid] = True
-                        for child in children_dict[tx2.txid]:
-                            for parent in child.parents:
-                                if not is_added_dict[parent]:
-                                    break
-                            else:
-                                valid_dict[child.txid] = True
+                if check_tx(tx2, curr_weight, is_added_dict):
+                    curr_weight, curr_fee = add_tx(block, tx2, curr_weight, curr_fee)
+                    is_added_dict[tx2.txid] = True
+                    for child in children_dict[tx2.txid]:
+                        for parent in child.parents:
+                            if not is_added_dict[parent]:
+                                break
+                        else:
+                            valid_dict[child.txid] = True
 
     save_block_stats(block, curr_fee, curr_weight)
     print(f"Total fee: {curr_fee} satoshis")
