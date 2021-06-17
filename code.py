@@ -67,13 +67,14 @@ def create_valid_dict(mempool):
     return valid_dict
 
 def create_tx_dict(mempool):
-    """Create and return a dictionary which maps txids to MempoolTransaction objects"""
+    """Create and return a dictionary which maps txids to MempoolTransaction objects."""
     tx_dict = {}
     for tx in mempool:
         tx_dict[tx.txid] = tx
     return tx_dict
 
 def create_is_added_dict(mempool):
+    """Create and return a dictionary which contains True if the transaction has been added to the block."""
     is_added_dict = {}
     for tx in mempool:
         is_added_dict[tx.txid] = False
@@ -102,30 +103,29 @@ def add_tx(block, tx, curr_weight, curr_fee):
     block.append(tx.txid)
     return curr_weight, curr_fee
 
-def create_block(sorted_mempool, children_dict, valid_dict):
+def create_block(sorted_mempool, children_dict, valid_dict, is_added_dict):
     """Create and return a block from the mempool maximizing the fee to the miner and print its stats."""
-    is_added = [False] * len(sorted_mempool)
     block = []
     curr_weight = 0
     curr_fee = 0
     for i, tx in enumerate(sorted_mempool):
         if check_tx(block, tx, curr_weight):
             curr_weight, curr_fee = add_tx(block, tx, curr_weight, curr_fee)
-            is_added[i] = True
+            is_added_dict[tx.txid] = True
             for child in children_dict[tx.txid]:
                 for parent in child.parents:
-                    if parent not in block:
+                    if not is_added_dict[parent]:
                         break
                 else:
                     valid_dict[child.txid] = True
             for j, tx2 in enumerate(sorted_mempool[:i]):
-                if not is_added[j] and valid_dict[tx2.txid]:
+                if not is_added_dict[tx2.txid] and valid_dict[tx2.txid]:
                     if check_tx(block, tx2, curr_weight):
                         curr_weight, curr_fee = add_tx(block, tx2, curr_weight, curr_fee)
-                        is_added[j] = True
+                        is_added_dict[tx2.txid] = True
                         for child in children_dict[tx2.txid]:
                             for parent in child.parents:
-                                if parent not in block:
+                                if not is_added_dict[parent]:
                                     break
                             else:
                                 valid_dict[child.txid] = True
@@ -158,6 +158,6 @@ is_added_dict = create_is_added_dict(mempool)
 
 sorted_mempool = sorted(mempool, key=lambda tx: tx.fee / tx.weight, reverse=True)
 
-block, total_fee, total_weight = create_block(sorted_mempool, children_dict, valid_dict)
+block, total_fee, total_weight = create_block(sorted_mempool, children_dict, valid_dict, is_added_dict)
 
 save_block_txids(block)
