@@ -66,6 +66,13 @@ def create_valid_dict(mempool):
             valid_dict[tx.txid] = False
     return valid_dict
 
+def create_tx_dict(mempool):
+    """Create and return a dictionary which maps txids to MempoolTransaction objects"""
+    tx_dict = {}
+    for tx in mempool:
+        tx_dict[tx.txid] = tx
+    return tx_dict
+
 def save_block_stats(block, total_fee, total_weight):
     """Save the stats of the block in stats.txt."""
     with open('stats.txt', 'w') as file:
@@ -140,6 +147,7 @@ analyse_children_dict(children_dict)
 print()
 
 valid_dict = create_valid_dict(mempool)
+tx_dict = create_tx_dict(mempool)
 
 sorted_mempool = sorted(mempool, key=lambda tx: tx.fee / tx.weight, reverse=True)
 
