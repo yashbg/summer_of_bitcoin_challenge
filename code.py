@@ -36,7 +36,7 @@ def print_mempool(mempool):
         print(tx.txid, tx.fee, tx.weight, tx.parents)
 
 def create_children_dict(mempool):
-    """Creates and returns a dictionary which contains the list of children of the transaction for every transaction in the mempool."""
+    """Create and return a dictionary which contains the list of children of the transaction for every transaction in the mempool."""
     children_dict = {}
     for tx in mempool:
         children_dict[tx.txid] = []
@@ -57,6 +57,7 @@ def analyse_children_dict(children_dict):
     print("Maximum no. of child transactions of any transaction:", max_num_children)
 
 def create_valid_dict(mempool):
+    """Create and return a dictionary which contains True if all of the parents of the transaction have been added to the block."""
     valid_dict = {}
     for tx in mempool:
         if len(tx.parents) == 0:
@@ -82,6 +83,7 @@ def check_tx(block, tx, curr_weight):
     return True
 
 def add_tx(block, tx, curr_weight, curr_fee):
+    """Add a transaction to the block and update the total weight and total fee corresponding to the block."""
     curr_weight += tx.weight
     curr_fee += tx.fee
     block.append(tx.txid)
@@ -98,14 +100,22 @@ def create_block(sorted_mempool, children_dict, valid_dict):
             curr_weight, curr_fee = add_tx(block, tx, curr_weight, curr_fee)
             is_added[i] = True
             for child in children_dict[tx.txid]:
-                valid_dict[child.txid] = True
+                for parent in child.parents:
+                    if parent not in block:
+                        break
+                else:
+                    valid_dict[child.txid] = True
             for j, tx2 in enumerate(sorted_mempool[:i]):
                 if not is_added[j] and valid_dict[tx2.txid]:
                     if check_tx(block, tx2, curr_weight):
                         curr_weight, curr_fee = add_tx(block, tx2, curr_weight, curr_fee)
                         is_added[j] = True
-                        for child2 in children_dict[tx2.txid]:
-                            valid_dict[child2.txid] = True
+                        for child in children_dict[tx2.txid]:
+                            for parent in child.parents:
+                                if parent not in block:
+                                    break
+                            else:
+                                valid_dict[child.txid] = True
 
     save_block_stats(block, curr_fee, curr_weight)
     print(f"Total fee: {curr_fee} satoshis")
