@@ -77,19 +77,20 @@ def create_block(sorted_mempool, children_dict):
     block = []
     curr_weight = 0
     curr_fee = 0
-    for tx in sorted_mempool:
+    for i, tx in enumerate(sorted_mempool):
         if check_tx(block, tx, curr_weight):
             curr_weight += tx.weight
             curr_fee += tx.fee
             block.append(tx.txid)
 
             for child in children_dict[tx.txid]:
-                if child.txid not in block:
-                    if child.fee / child.weight >= tx.fee / tx.weight:
-                        if curr_weight + child.weight <= MAX_WEIGHT:
-                            curr_weight += child.weight
-                            curr_fee += child.fee
-                            block.append(child.txid)
+                if i + 1 < len(sorted_mempool):
+                    if child.fee / child.weight >= sorted_mempool[i + 1].fee / sorted_mempool[i + 1].weight:
+                        if child.txid not in block:
+                            if curr_weight + child.weight <= MAX_WEIGHT:
+                                curr_weight += child.weight
+                                curr_fee += child.fee
+                                block.append(child.txid)
 
     save_block_stats(block, curr_fee, curr_weight)
     print(f"Total fee: {curr_fee} satoshis")
